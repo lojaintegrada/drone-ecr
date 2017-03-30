@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/drone/drone-go/drone"
 	"github.com/drone/drone-go/plugin"
+	"github.com/Masterminds/semver"
 )
 
 var (
@@ -46,6 +47,15 @@ func main() {
 		fmt.Println("Please provide a region")
 		os.Exit(1)
 	}
+
+	// Validates if semver tag was sent
+	if vargs.Tag.Len() < 2 || !isValidTag(vargs.Tag.Slice()[1]) {
+		fmt.Println("Please provide a semver tag")
+		os.Exit(1)
+	}
+
+	vargs.Tag.UnmarshalJSON([]byte(
+	  fmt.Sprintf("[\"latest\", \"%s\", \"%c\"]", vargs.Tag.Slice()[1], vargs.Tag.Slice()[1][0])))
 
 	awsConfig.Region = aws.String(vargs.Region)
 
@@ -319,4 +329,11 @@ func main() {
 // is executed. Used for debugging your build.
 func trace(cmd *exec.Cmd) {
 	fmt.Println("$", strings.Join(cmd.Args, " "))
+}
+
+func isValidTag(tag string) bool {
+	if _, err := semver.NewVersion(tag); err != nil {
+		return false
+	}
+	return true
 }
